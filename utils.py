@@ -93,7 +93,8 @@ def format_chat_export(chat_history: List[Dict]) -> str:
     
     formatted_chat = []
     formatted_chat.append("# Chat History Export")
-    formatted_chat.append(f"Generated on: {st.timestamp}")
+    import datetime
+    formatted_chat.append(f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     formatted_chat.append("")
     
     for i, message in enumerate(chat_history, 1):

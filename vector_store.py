@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 import re
 from google import genai
 from google.genai import types
@@ -40,7 +40,7 @@ class VectorStore:
             logging.error(f"Error creating vector store: {str(e)}")
             raise
     
-    def similarity_search(self, query: str, k: int = 5) -> List[Tuple, float]:
+    def similarity_search(self, query: str, k: int = 5) -> List[Tuple[Any, float]]:
         """
         Perform simple text similarity search
         
@@ -60,18 +60,19 @@ class VectorStore:
             results = []
             
             for doc in self.documents:
-                content = doc.page_content.lower()
-                doc_words = set(re.findall(r'\w+', content))
-                
-                # Calculate simple similarity score based on word overlap
-                if query_words:
-                    similarity = len(query_words.intersection(doc_words)) / len(query_words)
+                if hasattr(doc, 'page_content'):
+                    content = doc.page_content.lower()
+                    doc_words = set(re.findall(r'\w+', content))
                     
-                    # Boost score if query appears as substring
-                    if query.lower() in content:
-                        similarity += 0.5
-                    
-                    results.append((doc, similarity))
+                    # Calculate simple similarity score based on word overlap
+                    if query_words:
+                        similarity = len(query_words.intersection(doc_words)) / len(query_words)
+                        
+                        # Boost score if query appears as substring
+                        if query.lower() in content:
+                            similarity += 0.5
+                        
+                        results.append((doc, similarity))
             
             # Sort by similarity score and return top k
             results.sort(key=lambda x: x[1], reverse=True)
@@ -101,17 +102,18 @@ class VectorStore:
             current_length = 0
             
             for doc, score in similar_docs:
-                content = doc.page_content.strip()
-                source = doc.metadata.get('source', 'Unknown')
-                
-                # Estimate tokens (rough approximation: 1 token ≈ 4 characters)
-                estimated_tokens = len(content) // 4
-                
-                if current_length + estimated_tokens > max_tokens:
-                    break
-                
-                context_parts.append(f"[Source: {source}]\n{content}")
-                current_length += estimated_tokens
+                if hasattr(doc, 'page_content') and hasattr(doc, 'metadata'):
+                    content = doc.page_content.strip()
+                    source = doc.metadata.get('source', 'Unknown')
+                    
+                    # Estimate tokens (rough approximation: 1 token ≈ 4 characters)
+                    estimated_tokens = len(content) // 4
+                    
+                    if current_length + estimated_tokens > max_tokens:
+                        break
+                    
+                    context_parts.append(f"[Source: {source}]\n{content}")
+                    current_length += estimated_tokens
             
             return "\n\n---\n\n".join(context_parts)
             
